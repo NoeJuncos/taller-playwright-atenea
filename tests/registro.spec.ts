@@ -1,60 +1,88 @@
 import { test, expect } from '@playwright/test';
+import { RegisterPage } from '../pages/registerPage';
+import TestData from '../data/testData.json';
 
-test('TC-1 Verificación de elementos visuales en la página de registro', async ({ page }) => {
-  await page.goto('http://localhost:3000/');
-  await expect(page.locator('input[name="firstName"]')).toBeVisible();
-  await expect(page.locator('input[name="lastName"]')).toBeVisible();
-  await expect(page.locator('input[name="email"]')).toBeVisible();
-  await expect(page.locator('input[name="password"]')).toBeVisible();
-  await expect(page.getByTestId('boton-registrarse')).toBeVisible();
+let registerPage: RegisterPage;
+
+test.beforeEach(async ({ page }) => {
+  registerPage = new RegisterPage(page);
+  await registerPage.visitarPaginaRegistro();
 });
 
-test('TC-2 Verificación de botón de registro deshabilitado por', async ({ page }) => {
-  await page.goto('http://localhost:3000/');
-  await expect(page.getByTestId('boton-registrarse')).toBeDisabled();
+test('TC-1 Verificación de elementos visibles en la página de registro', async () => {
+  await test.step('Verificar que los elementos principales del formulario sean visibles', async () => {
+    await expect(registerPage.firstNameInput).toBeVisible();
+    await expect(registerPage.lastNameInput).toBeVisible();
+    await expect(registerPage.emailInput).toBeVisible();
+    await expect(registerPage.passwordInput).toBeVisible();
+    await expect(registerPage.registerButton).toBeVisible();
+  });
 });
 
-test('TC-3 Verificación de botón de registro habilitado al completar todos los campos', async ({ page }) => {
-  await page.goto('http://localhost:3000/');
-  await page.locator('input[name="firstName"]').fill('Noe');
-  await page.locator('input[name="lastName"]').fill('Juncos');
-  await page.locator('input[name="email"]').fill('noejuncos@test.com');
-  await page.locator('input[name="password"]').fill('123456');
-  await expect(page.getByTestId('boton-registrarse')).toBeEnabled();
+test('TC-2 Verificación de botón de registro deshabilitado inicialmente', async () => {
+  await test.step('Validar que el botón de registro esté deshabilitado al iniciar', async () => {
+    await expect(registerPage.registerButton).toBeDisabled();
+  });
 });
 
-test('TC-4 Verificación de redireccionamiento de la página de inicio de sesión', async ({ page }) => {
-  await page.goto('http://localhost:3000/');
-  await expect(page.getByTestId('boton-login-header-signup')).toBeVisible();
-  await page.getByTestId('boton-login-header-signup').click();
-  await expect(page).toHaveURL('http://localhost:3000/login');
+test('TC-3 Verificación de botón habilitado al completar todos los campos', async () => {
+  await test.step('Completar el formulario con datos válidos', async () => {
+    await registerPage.completarFormularioRegistro(TestData.registro.usuarioValido);
+  });
+
+  await test.step('Validar que el botón de registro se habilite', async () => {
+    await expect(registerPage.registerButton).toBeEnabled();
+  });
 });
 
-test('TC-5 Verificación de registro exitoso con datos válidos', async ({ page }) => {
-  await page.goto('http://localhost:3000/');
-  await page.locator('input[name="firstName"]').fill('Noe');
-  await page.locator('input[name="lastName"]').fill('Juncos');
-  await page.locator('input[name="email"]').fill('noejuncos'+Date.now().toString()+'@test.com');
-  await page.locator('input[name="password"]').fill('123456');
-  await page.getByTestId('boton-registrarse').click();
-  await expect (page.getByText('Registro exitoso!')).toBeVisible();
+test('TC-4 Verificación de redireccionamiento al login', async ({ page }) => {
+  await test.step('Hacer clic en el botón de login', async () => {
+    await registerPage.hacerClickEnBotonLogin();
+  });
 
+  await test.step('Verificar que la navegación redirija a la página de login', async () => {
+    await expect(page).toHaveURL(TestData.registro.mensajesEsperadosRegistro.urlLogin);
+  });
+});
+
+test('TC-5 Registro exitoso con datos válidos', async ({ page }) => {
+  const usuarioConEmailDinamico = {
+    ...TestData.registro.usuarioValido,
+    email: `${TestData.registro.emailDinamico.prefijo}${Date.now()}${TestData.registro.emailDinamico.sufijo}`
+  };
+
+  await test.step('Preparar un usuario con email dinámico', async () => {
+    // Se usa el objeto creado para el registro
+  });
+
+  await test.step('Completar y enviar el formulario de registro', async () => {
+    await registerPage.completarYHacerClickBotonRegistro(usuarioConEmailDinamico);
+  });
+
+  await test.step('Confirmar que se muestre el mensaje de registro exitoso', async () => {
+    await expect(page.getByText(TestData.registro.mensajesEsperadosRegistro.registroExitoso)).toBeVisible();
+  });
 });
 
 test('TC-6 Verificación de correo electrónico ya existente', async ({ page }) => {
-  const email = 'noejuncos'+Date.now().toString()+'@test.com';
-  await page.goto('http://localhost:3000/');
-  await page.locator('input[name="firstName"]').fill('Noe');
-  await page.locator('input[name="lastName"]').fill('Juncos');
-  await page.locator('input[name="email"]').fill(email);
-  await page.locator('input[name="password"]').fill('123456');
-  await page.getByTestId('boton-registrarse').click();
-  await page.goto('http://localhost:3000/');
-  await page.locator('input[name="firstName"]').fill('Noe');
-  await page.locator('input[name="lastName"]').fill('Juncos');
-  await page.locator('input[name="email"]').fill(email);
-  await page.locator('input[name="password"]').fill('123456');
-  await page.getByTestId('boton-registrarse').click();
-  await expect (page.getByText('Email already in use')).toBeVisible();
-  await expect (page.getByText('Registro exitoso!')).not.toBeVisible();
+  const email = `${TestData.registro.emailDinamico.prefijo}${Date.now()}${TestData.registro.emailDinamico.sufijo}`;
+  const usuario = { ...TestData.registro.usuarioValido, email };
+
+  await test.step('Preparar un usuario para el caso de correo ya existente', async () => {
+    // Se usa el objeto creado para el registro duplicado
+  });
+
+  await test.step('Registrar al usuario por primera vez', async () => {
+    await registerPage.completarYHacerClickBotonRegistro(usuario);
+  });
+
+  await test.step('Volver a la página de registro y registrar nuevamente', async () => {
+    await registerPage.visitarPaginaRegistro();
+    await registerPage.completarYHacerClickBotonRegistro(usuario);
+  });
+
+  await test.step('Verificar que aparezca el mensaje de correo ya existente y no el de éxito', async () => {
+    await expect(page.getByText(TestData.registro.mensajesEsperadosRegistro.emailYaExistente)).toBeVisible();
+    await expect(page.getByText(TestData.registro.mensajesEsperadosRegistro.registroExitoso)).not.toBeVisible();
+  });
 });
