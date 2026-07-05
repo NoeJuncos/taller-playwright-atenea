@@ -1,0 +1,31 @@
+{
+  "registro": {
+    "usuarioValido": {
+      "nombre": "Noe",
+      "apellido": "Juncos",
+      "email": "noejuncos@test.com",
+      "password": "123456"
+    },
+    "emailDinamico": {
+      "prefijo": "noejuncos",
+      "sufijo": "@test.com"
+    },
+    "mensajesEsperadosRegistro": {
+      "registroExitoso": "Registro exitoso!",
+      "emailYaExistente": "Email already in use",
+      "urlLogin": "http://localhost:3000/login"
+    }
+  },
+
+  "login": {
+    "usuarioValidoLogin": {
+      "email": "pruebasnoejuncoss@gmail.com",
+      "password": "123456"
+    },
+    "mensajesEsperadosLogin": {
+      "loginExitoso": "Inicio de sesión exitoso",
+      "credencialesInvalidas": "Credenciales inválidas",
+      "urlHome": "http://localhost:3000/home"
+    }
+  }
+}
