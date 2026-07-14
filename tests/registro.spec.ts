@@ -1,15 +1,16 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, request } from '@playwright/test';
 import { RegisterPage } from '../pages/registerPage';
 import TestData from '../data/testData.json';
 
 let registerPage: RegisterPage;
+const email = `${TestData.registro.emailDinamico.prefijo}${Date.now()}${TestData.registro.emailDinamico.sufijo}`;
 
 test.beforeEach(async ({ page }) => {
   registerPage = new RegisterPage(page);
   await registerPage.visitarPaginaRegistro();
 });
 
-test('TC-1 Verificación de elementos visibles en la página de registro', async () => {
+test('TC-1 Verificar elementos visibles en la página de registro', async () => {
   await test.step('Verificar que los elementos principales del formulario sean visibles', async () => {
     await expect(registerPage.firstNameInput).toBeVisible();
     await expect(registerPage.lastNameInput).toBeVisible();
@@ -19,13 +20,13 @@ test('TC-1 Verificación de elementos visibles en la página de registro', async
   });
 });
 
-test('TC-2 Verificación de botón de registro deshabilitado inicialmente', async () => {
+test('TC-2 Verificar botón de registro deshabilitado inicialmente', async () => {
   await test.step('Validar que el botón de registro esté deshabilitado al iniciar', async () => {
     await expect(registerPage.registerButton).toBeDisabled();
   });
 });
 
-test('TC-3 Verificación de botón habilitado al completar todos los campos', async () => {
+test('TC-3 Verificar botón habilitado al completar todos los campos', async () => {
   await test.step('Completar el formulario con datos válidos', async () => {
     await registerPage.completarFormularioRegistro(TestData.registro.usuarioValido);
   });
@@ -35,7 +36,7 @@ test('TC-3 Verificación de botón habilitado al completar todos los campos', as
   });
 });
 
-test('TC-4 Verificación de redireccionamiento al login', async ({ page }) => {
+test('TC-4 Verificar redireccionamiento al login', async ({ page }) => {
   await test.step('Hacer clic en el botón de login', async () => {
     await registerPage.hacerClickEnBotonLogin();
   });
@@ -45,7 +46,7 @@ test('TC-4 Verificación de redireccionamiento al login', async ({ page }) => {
   });
 });
 
-test('TC-5 Registro exitoso con datos válidos', async ({ page }) => {
+test('TC-5 Verificar registro exitoso con datos válidos', async ({ page }) => {
   const usuarioConEmailDinamico = {
     ...TestData.registro.usuarioValido,
     email: `${TestData.registro.emailDinamico.prefijo}${Date.now()}${TestData.registro.emailDinamico.sufijo}`
@@ -64,7 +65,7 @@ test('TC-5 Registro exitoso con datos válidos', async ({ page }) => {
   });
 });
 
-test('TC-6 Verificación de correo electrónico ya existente', async ({ page }) => {
+test('TC-6 Verificar correo electrónico ya existente', async ({ page }) => {
   const email = `${TestData.registro.emailDinamico.prefijo}${Date.now()}${TestData.registro.emailDinamico.sufijo}`;
   const usuario = { ...TestData.registro.usuarioValido, email };
 
@@ -85,4 +86,89 @@ test('TC-6 Verificación de correo electrónico ya existente', async ({ page }) 
     await expect(page.getByText(TestData.registro.mensajesEsperadosRegistro.emailYaExistente)).toBeVisible();
     await expect(page.getByText(TestData.registro.mensajesEsperadosRegistro.registroExitoso)).not.toBeVisible();
   });
+  });
+  
+  test('TC-8 Verificar registro exitoso verificando respuesta de API', async ({ page }) => {
+  await test.step('Completar el formulario de registro con datos válidos', async () => {
+    const usuario = { ...TestData.registro.usuarioValido, email };
+    await registerPage.completarFormularioRegistro(usuario);
+  });
+
+  await test.step('Hacer clic en el botón de registro y verificar la respuesta de la API', async () => {
+    // Es como decir: quedate atento que en algún momento va a llegar una respuesta de la API, y cuando llegue guardamela en responsePromise
+    const responsePromise = page.waitForResponse('http://localhost:6007/api/auth/signup');
+    // La acción que ejecutará la solicitud
+    await registerPage.hacerClickEnBotonRegistro();
+    // Esperar a que la respuesta de la API esté disponible
+    const response = await responsePromise;
+    const responseBody = await response.json();
+
+    expect(response.status()).toBe(201);
+    expect(responseBody).toHaveProperty('token');
+    expect(typeof responseBody.token).toBe('string');
+    expect(responseBody).toHaveProperty('user');
+    expect(responseBody.user).toEqual(expect.objectContaining({
+      id: expect.any(String),
+      firstName: TestData.registro.usuarioValido.nombre,
+      lastName: TestData.registro.usuarioValido.apellido,
+      email: expect.stringContaining(TestData.registro.emailDinamico.prefijo),
+    }));
+    await expect(page.getByText(TestData.registro.mensajesEsperadosRegistro.registroExitoso)).toBeVisible();
+  });
 });
+
+  test('TC-9 Generar signup desde la API con datos válidos', async ({ request }) => {
+    await test.step('Enviar solicitud POST a la API de registro con datos válidos', async () => {
+      // Realizo la solicitud POST a la API con esos datos como header y data
+      // El await es: esperá a que haga la solicitud y me devuelva la respuesta
+      const response = await request.post('http://localhost:6007/api/auth/signup', {
+        headers: {
+          'Accept': 'application/vnd.api+json',
+          'Content-Type': 'application/json',
+        },
+        data: {
+          firstName: TestData.registro.usuarioValido.nombre,
+          lastName: TestData.registro.usuarioValido.apellido,
+          email: email,
+          password: TestData.registro.usuarioValido.password
+        }
+      });
+    await test.step('Verificar que la respuesta de la API sea exitosa y contenga los datos esperados', async () => {
+      // Guarda la respuesta en formato JSON para poder hacer las validaciones
+      const responseBody = await response.json();
+      expect(response.status()).toBe(201);
+      expect(responseBody).toHaveProperty('token');
+      expect(typeof responseBody.token).toBe('string');
+      expect(responseBody).toHaveProperty('user');
+      expect(responseBody.user).toEqual(expect.objectContaining({
+        id: expect.any(String),
+        firstName: TestData.registro.usuarioValido.nombre,
+        lastName: TestData.registro.usuarioValido.apellido,
+        email: expect.stringContaining(TestData.registro.emailDinamico.prefijo),
+      }));
+    });
+  });
+});
+
+  test('TC-10 Simular error con page.route', async ({ page }) => {
+    await test.step('Interceptar la solicitud de registro y simular un error 500', async () => {
+      await page.route('**/api/auth/signup', route => {
+        route.fulfill({
+          status: 500,
+          contentType: 'application/json',
+          body: JSON.stringify({ message: 'Internal Server Error' }),
+        });
+      });
+
+    await test.step('Completar el formulario de registro y hacer clic en el botón de registro', async () => {
+      await registerPage.firstNameInput.fill(TestData.registro.usuarioValido.nombre);
+      await registerPage.lastNameInput.fill(TestData.registro.usuarioValido.apellido);
+      const email = `${TestData.registro.emailDinamico.prefijo}${Date.now()}${TestData.registro.emailDinamico.sufijo}`;
+      await registerPage.emailInput.fill(email);
+      await registerPage.passwordInput.fill(TestData.registro.usuarioValido.password);
+      await registerPage.hacerClickEnBotonRegistro();
+    
+    await expect(page.getByText('Internal Server Error')).toBeVisible();
+    });
+  });
+})
