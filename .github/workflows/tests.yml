@@ -20,7 +20,7 @@ jobs:
             MONGO_URI: ${{ secrets.MONGO_URI }}
             JWT_SECRET: ${{ secrets.JWT_SECRET }}
             PORT: 6007
-            VITE_API_URL: http://localhost:6007/api
+            VITE_API_BASE: http://localhost:6007/api
     
         steps:
           - name: Checkout repo actual (con el workflow)
@@ -35,7 +35,7 @@ jobs:
                 echo "MONGO_URI=${{ env.MONGO_URI }}" > app/backend/.env
                 echo "JWT_SECRET=${{ env.JWT_SECRET }}" >> app/backend/.env
                 echo "PORT=${{ env.PORT }}" >> app/backend/.env
-                echo "VITE_API_URL=${{ env.VITE_API_URL }}" >> app/backend/.env
+                echo "VITE_API_BASE=${{ env.VITE_API_BASE }}" >> app/backend/.env
 
           -  name: Instalar dependencias del backend
              run: |
@@ -58,8 +58,12 @@ jobs:
              run: |
                 cd app/frontend
                 npm install
+          -  name: Levantar el frontend
+             run: |
+                cd app/frontend
+                npm run dev > frontend.log 2>&1 &
              env: 
-                VITE_API_URL: ${{ env.VITE_API_URL }}
+                VITE_API_BASE: ${{ env.VITE_API_BASE }}
 
           -  name: Esperar al frontend
              run: wait-on http://localhost:3000
