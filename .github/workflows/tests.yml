@@ -68,13 +68,11 @@ jobs:
           -  name: Esperar al frontend
              run: wait-on http://localhost:3000
 
-
-        # Empezar a ejecutar las pruebas
           -  name: Instalar y ejecutar tests
              run: |
                 cd tests
                 npm install
-                npx playwright install
+                npx playwright install --with-deps
                 npx playwright test --reporter=html
 
           -  name: Guardar reportes como artefactos
