@@ -3,7 +3,6 @@ import { DashboardPage } from '../pages/dashboardPage';
 import { ModalEnviarTransferencia } from '../pages/modalEnviarTransferencia';
 import testData from '../data/testData.json';
 import fs from 'fs/promises';
-import { json } from 'stream/consumers';
 
 let dashboardPage: DashboardPage;
 let modalEnviarTransferencia: ModalEnviarTransferencia;
@@ -26,13 +25,13 @@ testUsuarioEnvia('TC-12 Verificar transacción exitosa', async ({ page }) => {
     await expect(dashboardPage.dashboardTitle).toBeVisible();
     await dashboardPage.botonEnviarDinero.click();
     await modalEnviarTransferencia.completarFormularioEnvioTransferenciaYClickBotonEnviar(testData.registro.usuarioValido.email, '100');
-    await expect(page.getByText('Transferencia enviada a ' + testData.registro.usuarioValido.email)).toBeVisible;
+    await expect(page.getByText('Transferencia enviada a ' + testData.registro.usuarioValido.email)).toBeVisible();
 
 })
 
 testUsuarioRecibe('TC-13 Verificar que el usuario reciba la transferencia', async ({ page }) => {
     await expect(dashboardPage.dashboardTitle).toBeVisible();
-    await expect(page.getByText('Transferencia de ').first()).toBeVisible;
+    await expect(page.getByText('Transferencia de ').first()).toBeVisible();
 
 })
 
