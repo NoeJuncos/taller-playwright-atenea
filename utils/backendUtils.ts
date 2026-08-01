@@ -2,8 +2,15 @@ import { APIRequestContext, expect } from '@playwright/test';
 
 export class BackendUtils {
 
-    static async crearUsuario(request: APIRequestContext, usuario: any) {
-        const email = `${usuario.emailDinamico.prefijo}${Date.now()}${usuario.emailDinamico.sufijo}`;
+    static async crearUsuario(request: APIRequestContext, usuario: any, esNuevo: boolean = true) {
+        let email: string;
+
+        if (esNuevo) {
+            email = `${usuario.emailDinamico.prefijo}${Date.now()}${usuario.emailDinamico.sufijo}`;
+        } else {
+            email= usuario.email;
+        }
+        
         const response = await request.post('http://localhost:6007/api/auth/signup', {
             headers: {
                 'Accept': 'application/vnd.api+json',
