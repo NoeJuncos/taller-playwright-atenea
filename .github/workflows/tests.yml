@@ -86,7 +86,7 @@ jobs:
              if: always()
              run: |
                     git config --global user.name "github-actions[bot]"
-                    git config --global user.email "github-actions[bot]@users.noreply.github
+                    git config --global user.email "github-actions[bot]@users.noreply.github"
                     cd $RUNNER_TEMP
                     git clone --depth 1 --branch=gh-pages https://x-access-token:${{ secrets.GH_PAGES_PAT }}@github.com/${{ github.repository }} gh-pages
 
@@ -100,5 +100,6 @@ jobs:
                     git push origin gh-pages
                     
           -  name: Imprimir link en consola
+             if: always()
              run: |
                 echo "Reporte Playwright disponible en: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/report-${github.run_number}/"
