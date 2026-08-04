@@ -6,16 +6,18 @@ on:
   pull_request:
     branches: [main]
 
+# Acá empieza: es como una computadora temporal que crea exclusivamente GitHub para estas tareas
 jobs:
     test:
         runs-on: ubuntu-latest
         
+        # Crea un contenedor Docker con MongoDB
         services:
             mongo:
                 image: mongo:6.0
                 ports: 
                     - 27017:27017
-
+        # Las variables de entorno que se van a usar en el back y en el front
         env:
             MONGO_URI: ${{ secrets.MONGO_URI }}
             JWT_SECRET: ${{ secrets.JWT_SECRET }}
@@ -41,8 +43,10 @@ jobs:
              run: |
                 cd app/backend
                 npm install
-        
-          -  name: Construir el backend
+
+# Con el backend.log 2>&1 & se redirige la salida del backend a un archivo para poder debuguear si algo falla, y el último & hace que
+# el comando se ejecute en segundo plano para que no bloquee la ejecución del workflow
+          -  name: Iniciar el backend
              run: |
                 cd app/backend
                 npm run dev > backend.log 2>&1 &
@@ -58,6 +62,7 @@ jobs:
              run: |
                 cd app/frontend
                 npm install
+
           -  name: Levantar el frontend
              run: |
                 cd app/frontend
