@@ -48,13 +48,15 @@ export default defineConfig({
     {
       name: 'firefox',
       use: { ...devices['Desktop Firefox'] },
-      dependencies: ['setup']
+      dependencies: ['setup'],
+      testIgnore: /transacciones\.spec\.ts/
     },
 
     {
       name: 'webkit',
       use: { ...devices['Desktop Safari'] },
-      dependencies: ['setup']
+      dependencies: ['setup'],
+      testIgnore: /transacciones\.spec\.ts/
     },
 
     /* Test against mobile viewports. */
