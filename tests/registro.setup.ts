@@ -47,6 +47,11 @@ setup('Crear y loguearse con usuario que recibe dinero', async ({ page, request 
     const nuevoUsuario = await BackendUtils.crearUsuario(request, TestData.registro.usuarioValido, false);
     await loginPage.completarYHacerClickBotonLogin(nuevoUsuario);
     await expect(dashboardPage.dashboardTitle).toBeVisible();
+    await dashboardPage.botonAgregarCuenta.click();
+    await modalCrearCuenta.seleccionarTipoDeCuenta('Débito');
+    await modalCrearCuenta.ingresarMontoInicial('1');
+    await modalCrearCuenta.botonCrearCuenta.click();
+    await expect(page.getByText('¡Cuenta creada exitosamente!')).toBeVisible();
     await page.context().storageState({ path: usuarioRecibeAuthFile });
 
 })
