@@ -18,6 +18,10 @@ const usuarioEnviaDataFile = 'playwright/.auth/usuarioEnvia.data.json';
 
 // Instancio las clases y las inicializo, y va a la página de Login
 setup.beforeEach(async ({ page }) => {
+    // Me aseguro de que la carpeta playwright/.auth/ exista antes de escribir ahí.
+    // En un checkout limpio (como en CI) esta carpeta no existe todavía, porque está en .gitignore.
+    await fs.mkdir(path.resolve(__dirname, '..', 'playwright/.auth'), { recursive: true });
+
     loginPage = new LoginPage(page);
     dashboardPage = new DashboardPage(page);
     modalCrearCuenta = new ModalCrearCuenta(page);
