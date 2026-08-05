@@ -1,7 +1,6 @@
 import { test, expect, request } from '@playwright/test';
 import { DashboardPage } from '../pages/dashboardPage';
 import { ModalEnviarTransferencia } from '../pages/modalEnviarTransferencia';
-import testData from '../data/testData.json';
 import fs from 'fs/promises';
 
 let dashboardPage: DashboardPage;
@@ -15,6 +14,15 @@ const testUsuarioRecibe = test.extend({
     storageState: 'playwright/.auth/usuarioRecibe.json'
 })
 
+// Lee el email dinámico del usuario que recibe dinero, generado por el setup
+async function obtenerEmailUsuarioRecibe(): Promise<string> {
+    const usuarioRecibeData = require.resolve('../playwright/.auth/usuarioRecibe.data.json');
+    const contenido = await fs.readFile(usuarioRecibeData, 'utf-8');
+    const datos = JSON.parse(contenido);
+    expect(datos.email, 'El email del usuario que recibe no se leyó correctamente desde el archivo').toBeDefined();
+    return datos.email;
+}
+
 test.beforeEach(async ({ page }) => {
     dashboardPage = new DashboardPage(page);
     modalEnviarTransferencia = new ModalEnviarTransferencia(page);
@@ -22,10 +30,12 @@ test.beforeEach(async ({ page }) => {
 })
 
 testUsuarioEnvia('TC-12 Verificar transacción exitosa', async ({ page }) => {
+    const emailUsuarioRecibe = await obtenerEmailUsuarioRecibe();
+
     await expect(dashboardPage.dashboardTitle).toBeVisible();
     await dashboardPage.botonEnviarDinero.click();
-    await modalEnviarTransferencia.completarFormularioEnvioTransferenciaYClickBotonEnviar(testData.registro.usuarioValido.email, '100');
-    await expect(page.getByText('Transferencia enviada a ' + testData.registro.usuarioValido.email)).toBeVisible();
+    await modalEnviarTransferencia.completarFormularioEnvioTransferenciaYClickBotonEnviar(emailUsuarioRecibe, '100');
+    await expect(page.getByText('Transferencia enviada a ' + emailUsuarioRecibe)).toBeVisible();
 
 })
 
@@ -46,6 +56,9 @@ testUsuarioRecibe('TC-14 Verificar transferencia recibida (enviada por API)', as
 
     // Me aseguro de que el email no sea nulo y exista, que esté definido
     expect(emailUsuarioEnvia, 'El email del usuario que envía no se leyó correctamente desde el archivo').toBeDefined();
+
+    // Leemos el email dinámico del usuario que recibe, generado por el setup
+    const emailUsuarioRecibe = await obtenerEmailUsuarioRecibe();
 
     // Leemos el archivo de autenticación del remitente para obtener su JWT
     const usuarioEnviaAuth = require.resolve('../playwright/.auth/usuarioEnvia.json');
@@ -73,7 +86,7 @@ testUsuarioRecibe('TC-14 Verificar transferencia recibida (enviada por API)', as
     expect(cuentas.length, 'No se encontraron cuentas para el usuario').toBeGreaterThan(0);
     const idCuentaOrigen = cuentas[0]._id; // Guardo el id de la primera cuenta
     const montoAleatorio = Math.floor(Math.random() * 100) + 1; // Genero un monto aleatorio entre 1 y 100
-    console.log(`Enviando transferencia de $${montoAleatorio} desde la cuenta ${idCuentaOrigen} a ${testData.registro.usuarioValido.email}`);
+    console.log(`Enviando transferencia de $${montoAleatorio} desde la cuenta ${idCuentaOrigen} a ${emailUsuarioRecibe}`);
 
     // Ahora, con todos los datos, podemos enviar la transferencia de una cuenta a la otra
     const respuestaTransferencia = await request.post('http://localhost:6007/api/transactions/transfer', {
@@ -82,7 +95,7 @@ testUsuarioRecibe('TC-14 Verificar transferencia recibida (enviada por API)', as
         },
         data: {
             fromAccountId: idCuentaOrigen,
-            toEmail: testData.registro.usuarioValido.email,
+            toEmail: emailUsuarioRecibe,
             amount: montoAleatorio
         }
     });
