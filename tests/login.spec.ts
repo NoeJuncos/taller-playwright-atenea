@@ -6,7 +6,6 @@ import { BackendUtils } from '../utils/backendUtils';
 
 let loginPage: LoginPage;
 let dashboardPage: DashboardPage;
-const email = `${TestData.registro.emailDinamico.prefijo}${Date.now()}${TestData.registro.emailDinamico.sufijo}`;
 
 test.beforeEach(async ({ page }) => {
   loginPage = new LoginPage(page);
@@ -14,16 +13,15 @@ test.beforeEach(async ({ page }) => {
   await loginPage.visitarPaginaLogin();
 });
 
-test('TC-7: Verificar inicio de sesión exitoso con credenciales válidas', async () => {
-  await test.step('Completar el formulario de inicio de sesión y hacer clic en el botón de login', async () => {
-    await loginPage.completarYHacerClickBotonLogin(TestData.login.usuarioValidoLogin);
-    await expect(loginPage.page.getByText(TestData.login.mensajesEsperadosLogin.loginExitoso)).toBeVisible();
-    await expect(dashboardPage.dashboardTitle).toBeVisible();
+test('TC-7: Verificar inicio de sesión exitoso con credenciales válidas', async ({ request }) => {
+  const nuevoUsuario = await BackendUtils.crearUsuario(request, TestData.registro);
+
+  await loginPage.completarYHacerClickBotonLogin(nuevoUsuario);
+  await expect(loginPage.page.getByText(TestData.login.mensajesEsperadosLogin.loginExitoso)).toBeVisible();
+  await expect(dashboardPage.dashboardTitle).toBeVisible();
 });
-})
 
 test('TC-11 Loguear con nuevo usuario creado por backend', async ({ page, request }) => {
-
   const nuevoUsuario = await BackendUtils.crearUsuario(request, TestData.registro);
 
   const responsePromiseLogin = page.waitForResponse('http://localhost:6007/api/auth/login');
@@ -37,12 +35,11 @@ test('TC-11 Loguear con nuevo usuario creado por backend', async ({ page, reques
   expect(typeof responseBodyLoginJson.token).toBe('string');
   expect(responseBodyLoginJson).toHaveProperty('user');
   expect(responseBodyLoginJson.user).toEqual(expect.objectContaining({
-     id: expect.any(String),
-     firstName: TestData.registro.usuarioValido.nombre,
-     lastName: TestData.registro.usuarioValido.apellido,
-     email: nuevoUsuario.email,
-   }));
+    id: expect.any(String),
+    firstName: TestData.registro.usuarioValido.nombre,
+    lastName: TestData.registro.usuarioValido.apellido,
+    email: nuevoUsuario.email,
+  }));
   await expect(loginPage.page.getByText(TestData.login.mensajesEsperadosLogin.loginExitoso)).toBeVisible();
   await expect(dashboardPage.dashboardTitle).toBeVisible();
-
 });

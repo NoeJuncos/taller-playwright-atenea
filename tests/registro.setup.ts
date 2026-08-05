@@ -15,9 +15,14 @@ let modalCrearCuenta: ModalCrearCuenta
 const usuarioEnviaAuthFile = 'playwright/.auth/usuarioEnvia.json';
 const usuarioRecibeAuthFile = 'playwright/.auth/usuarioRecibe.json';
 const usuarioEnviaDataFile = 'playwright/.auth/usuarioEnvia.data.json';
+const usuarioRecibeDataFile = 'playwright/.auth/usuarioRecibe.data.json';
 
 // Instancio las clases y las inicializo, y va a la página de Login
 setup.beforeEach(async ({ page }) => {
+    // Me aseguro de que la carpeta playwright/.auth/ exista antes de escribir ahí.
+    // En un checkout limpio (como en CI) esta carpeta no existe todavía, porque está en .gitignore.
+    await fs.mkdir(path.resolve(__dirname, '..', 'playwright/.auth'), { recursive: true });
+
     loginPage = new LoginPage(page);
     dashboardPage = new DashboardPage(page);
     modalCrearCuenta = new ModalCrearCuenta(page);
@@ -39,9 +44,21 @@ setup('Generar usuario que envía dinero', async ({ page, request }) => {
     await page.context().storageState({ path: usuarioEnviaAuthFile });
 })
 
-setup('Loguearse con usuario que recibe dinero', async ({ page }) => {
-    await loginPage.completarYHacerClickBotonLogin(TestData.registro.usuarioValido);
+setup('Crear y loguearse con usuario que recibe dinero', async ({ page, request }) => {
+    const nuevoUsuario = await BackendUtils.crearUsuario(request, TestData.registro);
+
+    // Guardo los datos del nuevo usuario para poder usarlos en los tests de transacciones
+    await fs.writeFile(path.resolve(__dirname, '..', usuarioRecibeDataFile), JSON.stringify(nuevoUsuario, null, 2))
+
+    await loginPage.completarYHacerClickBotonLogin(nuevoUsuario);
     await expect(dashboardPage.dashboardTitle).toBeVisible();
+
+    await dashboardPage.botonAgregarCuenta.click();
+    await modalCrearCuenta.seleccionarTipoDeCuenta('Débito');
+    await modalCrearCuenta.ingresarMontoInicial('5000');
+    await modalCrearCuenta.botonCrearCuenta.click();
+    await expect(page.getByText('¡Cuenta creada exitosamente!')).toBeVisible();
+
     await page.context().storageState({ path: usuarioRecibeAuthFile });
 
 })
